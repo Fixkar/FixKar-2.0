@@ -1,0 +1,91 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() { return request.auth != null; }
+    function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isAdmin() { return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    function isValidId(id) { 
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
+    }
+
+    // --- Users Collection ---
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      
+      allow create: if isOwner(userId) && 
+        incoming().role == 'user' && 
+        incoming().keys().hasAll(['uid', 'email', 'role', 'createdAt']) &&
+        incoming().createdAt == request.time;
+        
+      allow update: if isOwner(userId) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['vehicles', 'displayName', 'photoURL', 'phoneNumber']) &&
+        incoming().role == existing().role
+      );
+    }
+
+    // --- Mechanics Collection ---
+    match /mechanics/{mechId} {
+      allow get: if isSignedIn(); // Customers need to see public info
+      allow list: if isSignedIn(); // Search for nearby
+      
+      allow create: if isOwner(mechId) && 
+        incoming().role == 'mechanic' &&
+        incoming().createdAt == request.time;
+        
+      allow update: if isOwner(mechId) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['isOnline', 'currentLocation', 'displayName', 'photoURL', 'workshopName', 'specialties']) &&
+        incoming().role == existing().role
+      );
+    }
+
+    // --- Requests Collection ---
+    match /requests/{reqId} {
+      allow get: if isSignedIn() && (
+        isOwner(existing().customerId) || 
+        isOwner(existing().mechanicId) || 
+        isAdmin()
+      );
+      
+      allow list: if isSignedIn() && (
+        resource.data.customerId == request.auth.uid || 
+        resource.data.mechanicId == request.auth.uid || 
+        isAdmin()
+      );
+
+      allow create: if isVerified() && 
+        incoming().customerId == request.auth.uid &&
+        incoming().status == 'pending' &&
+        incoming().createdAt == request.time;
+
+      allow update: if isSignedIn() && (
+        // Customer cancelling
+        (isOwner(existing().customerId) && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']) && incoming().status == 'cancelled') ||
+        
+        // Mechanic accepting/updating
+        (isOwner(existing().mechanicId) && (
+          (existing().status == 'pending' && incoming().status == 'accepted') ||
+          (existing().status == 'accepted' && incoming().status == 'arrived') ||
+          (existing().status == 'arrived' && incoming().status == 'started') ||
+          (existing().status == 'started' && incoming().status == 'completed')
+        ) && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt', 'finalFare']))
+      ) && incoming().updatedAt == request.time;
+    }
+
+    // --- Admin Access Control ---
+    match /admins/{adminId} {
+      allow read: if isOwner(adminId);
+    }
+  }
+}

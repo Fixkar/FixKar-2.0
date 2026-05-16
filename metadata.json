@@ -1,0 +1,6 @@
+{
+  "name": "FixKar - Roadside Assistance",
+  "description": "Premium roadside vehicle assistance and mechanic marketplace platform. Connects users with nearby mechanics in real-time.",
+  "requestFramePermissions": ["geolocation", "camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,98 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Represents a customer using the platform",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "mechanic", "admin"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "vehicles": { 
+          "type": "array", 
+          "items": { 
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "type": { "type": "string", "enum": ["car", "bike"] },
+              "brand": { "type": "string" },
+              "model": { "type": "string" },
+              "year": { "type": "string" },
+              "regNumber": { "type": "string" }
+            }
+          } 
+        }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Mechanic": {
+      "title": "Mechanic",
+      "description": "Represents a service provider",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "workshopName": { "type": "string" },
+        "specialties": { "type": "array", "items": { "type": "string" } },
+        "isOnline": { "type": "boolean" },
+        "currentLocation": { "type": "object" },
+        "rating": { "type": "number" },
+        "reviewCount": { "type": "number" },
+        "subscriptionPlan": { "type": "string", "enum": ["free", "monthly", "yearly"] },
+        "role": { "type": "string", "enum": ["mechanic"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Vehicle": {
+      "title": "Vehicle",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string", "enum": ["car", "bike"] },
+        "brand": { "type": "string" },
+        "model": { "type": "string" },
+        "year": { "type": "string" },
+        "regNumber": { "type": "string" }
+      }
+    },
+    "Request": {
+      "title": "Service Request",
+      "description": "A roadside assistance request",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customerId": { "type": "string" },
+        "mechanicId": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "accepted", "arrived", "started", "completed", "cancelled"] },
+        "issueType": { "type": "string" },
+        "location": { "type": "object" },
+        "customerLocation": { "type": "object" },
+        "estimatedFare": { "type": "number" },
+        "finalFare": { "type": "number" },
+        "vehicleId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "firestore": {
+    "users": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "mechanics": {
+      "schema": "Mechanic",
+      "description": "Mechanic profiles"
+    },
+    "requests": {
+      "schema": "Request",
+      "description": "Service requests and bookings"
+    }
+  }
+}
